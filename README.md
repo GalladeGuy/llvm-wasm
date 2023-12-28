@@ -82,7 +82,8 @@ cmake -G Ninja -S llvm -B build-host -DCMAKE_BUILD_TYPE=Release
 cmake --build build-host --target llvm-tblgen
 
 # No easy way to set flags just for lld, so we modify the cmake file directly
-echo "set_target_properties(lld PROPERTIES LINK_FLAGS --preload-file=../../wasi-sysroot/lib@/lib)" >> llvm/CMakeLists.txt
+echo 'set_target_properties(lld PROPERTIES LINK_FLAGS "--preload-file=../../wasi-sysroot/lib@/lib")' >> llvm/CMakeLists.txt
+echo 'set_target_properties(clang PROPERTIES LINK_FLAGS "--preload-file=../../wasi-sysroot/@/ --preload-file=../build/lib/clang/@/lib/clang/")' >> llvm/CMakeLists.txt
 
 EMCC_DEBUG=2 \
 CXXFLAGS="-Dwait4=__syscall_wait4" \
@@ -92,7 +93,8 @@ emcmake cmake -G Ninja -S llvm -B build \
   -DCMAKE_INSTALL_PREFIX=install \
   -DLLVM_TARGET_ARCH=wasm32-emscripten \
   -DLLVM_DEFAULT_TARGET_TRIPLE=wasm32-wasi \
-  -DLLVM_ENABLE_PROJECTS=lld \
+  -DLLVM_TARGETS_TO_BUILD=WebAssembly \
+  -DLLVM_ENABLE_PROJECTS=lld;clang \
   -DLLVM_ENABLE_THREADS=OFF \
   -DLLVM_TABLEGEN=$PWD/build-host/bin/llvm-tblgen
 cmake --build build
