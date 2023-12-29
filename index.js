@@ -1,15 +1,17 @@
-import { init, WASI } from 'https://esm.sh/@wasmer/wasi@1.1.2'
-import Llc from './llc.js'
+import { init, WASI } from 'https://esm.sh/@wasmer/wasi@1.2.2'
+import Clang from './clang.js'
 import Lld from './lld.js'
 
 await init()
 
-export const compileAndRun = async (mainLl) => {
-    const llc = await Llc()
-    llc.FS.writeFile('main.ll', mainLl)
-    await llc.callMain(['-filetype=obj', 'main.ll'])
-    const mainO = llc.FS.readFile('main.o')
+export const compileAndRun = async (mainC) => {
+    const clang = await Clang()
+    clang.FS.writeFile('main.cpp', mainC)
+    await clang.callMain(['-fno-exceptions', '-std=c++23', '-c', 'main.cpp', '-v'])
 
+    const mainO = clang.FS.readFile('main.o')
+	console.log("built object file")
+	
     const lld = await Lld()
     lld.FS.writeFile('main.o', mainO)
     await lld.callMain([
@@ -26,14 +28,16 @@ export const compileAndRun = async (mainLl) => {
         'main.wasm',
     ])
     const mainWasm = lld.FS.readFile('main.wasm')
+    console.log("built wasm file")
 
     const wasi = new WASI({})
     const module = await WebAssembly.compile(mainWasm)
     const instance = await WebAssembly.instantiate(module, {
         ...wasi.getImports(module)
     })
+
+    console.log("running wasm file")
     wasi.start(instance)
     const stdout = await wasi.getStdoutString()
-
     return stdout
 }
